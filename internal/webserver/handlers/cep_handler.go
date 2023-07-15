@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"regexp"
 	"time"
 
 	"github.com/gsouza97/go-multithreading-api/internal/dto"
-	"github.com/gsouza97/go-multithreading-api/internal/entity"
 )
 
 type CepHandler struct{}
@@ -41,14 +39,12 @@ func (handler *CepHandler) GetCep(w http.ResponseWriter, r *http.Request) {
 	case viaCep := <-ch1:
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(viaCep)
-		fmt.Println("ViaCep")
 	case cdnCep := <-ch2:
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(cdnCep)
-		fmt.Println("ViaCep")
 	case <-time.After(1 * time.Second):
 		e := Error{Message: "Exceeded time limit"}
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusRequestTimeout)
 		json.NewEncoder(w).Encode(e)
 	}
 }
@@ -59,55 +55,57 @@ func validateCep(cep string) bool {
 }
 
 func findByViaCep(cep string, ch chan<- interface{}) {
-	url := "https://viacep.com.br/ws/" + cep + "/json/"
+	url := "https://viacep.com.br/ws/" + cep + "/json"
 	res, err := http.Get(url)
 	if err != nil {
-		fmt.Println(err)
-		ch <- entity.Cep{}
+		e := Error{Message: err.Error()}
+		ch <- e
 		return
 	}
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println(err)
-		ch <- entity.Cep{}
+		e := Error{Message: err.Error()}
+		ch <- e
 		return
 	}
 	var c dto.ViaCepResponse
 	err = json.Unmarshal(body, &c)
 	if err != nil {
-		fmt.Println(err)
-		ch <- entity.Cep{}
+		e := Error{Message: err.Error()}
+		ch <- e
 		return
 	}
-	// fmt.Println(c)
-	ch <- entity.MapViaCepResponseToCep(c)
+	c.Url = url
+	if res.StatusCode == http.StatusOK {
+		ch <- c
+	}
 }
 
 func findByCdnCep(cep string, ch chan<- interface{}) {
 	url := "https://cdn.apicep.com/file/apicep/" + cep + ".json"
 	res, err := http.Get(url)
 	if err != nil {
-		fmt.Println(err)
-		ch <- entity.Cep{}
+		e := Error{Message: err.Error()}
+		ch <- e
 		return
 	}
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println(err)
-		ch <- entity.Cep{}
+		e := Error{Message: err.Error()}
+		ch <- e
 		return
 	}
 	var c dto.CdnCepResponse
 	err = json.Unmarshal(body, &c)
 	if err != nil {
-		fmt.Println(err)
-		ch <- entity.Cep{}
+		e := Error{Message: err.Error()}
+		ch <- e
 		return
 	}
-
-	// fmt.Println(c)
-
-	ch <- entity.MapCdnCepResponseToCep(c)
+	c.Url = url
+	if res.StatusCode == http.StatusOK {
+		ch <- c
+	}
 }

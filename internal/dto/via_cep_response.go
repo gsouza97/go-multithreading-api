@@ -1,6 +1,7 @@
 package dto
 
 type ViaCepResponse struct {
+	Url         string `json:"url"`
 	Cep         string `json:"cep"`
 	Logradouro  string `json:"logradouro"`
 	Complemento string `json:"complemento"`

@@ -1,6 +1,7 @@
 package dto
 
 type CdnCepResponse struct {
+	Url        string `json:"url"`
 	Code       string `json:"code"`
 	State      string `json:"state"`
 	City       string `json:"city"`
