@@ -1,0 +1,2 @@
+### Get CEP
+POST http://localhost:3000/?cep=01431-020 HTTP/1.1
